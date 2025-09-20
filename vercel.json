@@ -1,0 +1,85 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "apps/web/package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "apps/web/$1"
+    }
+  ],
+  "env": {
+    "DATABASE_URL": "@database_url",
+    "AUTH_SECRET": "@auth_secret",
+    "NEXTAUTH_URL": "@nextauth_url",
+    "STRIPE_SECRET_KEY": "@stripe_secret_key",
+    "STRIPE_PUBLISHABLE_KEY": "@stripe_publishable_key",
+    "STRIPE_WEBHOOK_SECRET": "@stripe_webhook_secret",
+    "R2_ACCESS_KEY_ID": "@r2_access_key_id",
+    "R2_SECRET_ACCESS_KEY": "@r2_secret_access_key",
+    "R2_BUCKET_NAME": "@r2_bucket_name",
+    "R2_PUBLIC_URL": "@r2_public_url",
+    "MEILISEARCH_HOST": "@meilisearch_host",
+    "MEILISEARCH_API_KEY": "@meilisearch_api_key",
+    "RESEND_API_KEY": "@resend_api_key",
+    "SENTRY_DSN": "@sentry_dsn"
+  },
+  "functions": {
+    "apps/web/app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/admin",
+      "destination": "/admin/dashboard",
+      "permanent": false
+    },
+    {
+      "source": "/employer",
+      "destination": "/employer/dashboard",
+      "permanent": false
+    },
+    {
+      "source": "/employee",
+      "destination": "/employee/dashboard",
+      "permanent": false
+    }
+  ]
+}

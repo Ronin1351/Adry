@@ -1,0 +1,445 @@
+// Adry - Housekeeper Hiring Platform
+// Optimized schema with RLS policies for security
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  EMPLOYER
+  EMPLOYEE
+}
+
+enum CivilStatus {
+  SINGLE
+  MARRIED
+  WIDOWED
+  DIVORCED
+  SEPARATED
+}
+
+enum EmploymentType {
+  LIVE_IN
+  LIVE_OUT
+  BOTH
+}
+
+enum KYCStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  VERIFIED
+  REJECTED
+}
+
+enum DocumentType {
+  PHILSYS_ID
+  PHILHEALTH_ID
+  PAGIBIG_ID
+  PASSPORT
+  NBI_CLEARANCE
+  POLICE_CLEARANCE
+  BIRTH_CERTIFICATE
+  MARRIAGE_CERTIFICATE
+  OTHER
+}
+
+enum DocumentStatus {
+  PENDING
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
+  EXPIRED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELED
+  NO_SHOW
+  RESCHEDULED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELED
+}
+
+enum PaymentProvider {
+  STRIPE
+  PAYPAL
+  GCASH
+  BANK_TRANSFER
+}
+
+enum HouseholdSize {
+  SMALL
+  MEDIUM
+  LARGE
+  EXTRA_LARGE
+}
+
+enum PreferredArrangement {
+  LIVE_IN
+  LIVE_OUT
+  BOTH
+}
+
+enum PrimaryLanguage {
+  TAGALOG
+  ENGLISH
+  BOTH
+}
+
+enum ContributionPolicy {
+  YES
+  NO
+  OPTIONAL
+}
+
+enum RoomType {
+  PRIVATE_ROOM
+  SHARED_ROOM
+  STUDIO
+}
+
+enum MealsProvided {
+  ALL_MEALS
+  BREAKFAST_ONLY
+  LUNCH_DINNER
+  NONE
+}
+
+// Core user table
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      Role     @default(EMPLOYEE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  employeeProfile EmployeeProfile?
+  employerProfile EmployerProfile?
+  subscriptions   Subscription[]
+  chatsAsEmployer Chat[]         @relation("EmployerChats")
+  chatsAsEmployee Chat[]         @relation("EmployeeChats")
+  sentMessages    ChatMessage[]
+  interviews      Interview[]
+  auditLogs       AuditLog[]
+  savedSearches   SavedSearch[]
+
+  @@map("users")
+}
+
+// Employee profiles with RLS
+model EmployeeProfile {
+  userId          String      @id
+  photoUrl        String?
+  firstName       String
+  lastName        String?     // Hidden from public view
+  age             Int
+  birthDate       DateTime?
+  civilStatus     CivilStatus
+  city            String
+  province        String
+  exactAddress    String?     // Private field
+  phone           String
+  email           String
+  skills          String[]    @default([])
+  experience      Int         // Years of experience
+  headline        String?     // Professional summary
+  salaryMin       Int
+  salaryMax       Int
+  employmentType  EmploymentType @default(LIVE_OUT)
+  availabilityDate DateTime?
+  daysOff         String[]    @default([])
+  overtime        Boolean     @default(false)
+  holidayWork     Boolean     @default(false)
+  visibility      Boolean     @default(false)
+  profileScore    Int         @default(0) // 0-100 completeness score
+  kycStatus       KYCStatus   @default(NOT_STARTED)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents   Document[]
+  references  Reference[]
+
+  @@map("employee_profiles")
+}
+
+// Employer profiles
+model EmployerProfile {
+  userId               String              @id
+  companyName          String
+  contactPerson        String
+  city                 String
+  province             String
+  contactEmail         String?
+  contactPhone         String?
+  aboutText            String?
+  householdSize        HouseholdSize?
+  preferredArrangement PreferredArrangement?
+  budgetMin            Int?
+  budgetMax            Int?
+  requirements         Json                @default("{}")
+  languageRequirements Json                @default("{}")
+  workSchedule         Json                @default("{}")
+  benefitsPolicies     Json                @default("{}")
+  accommodationDetails Json                @default("{}")
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  // Relations
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptions   Subscription[]
+  billingHistory  BillingHistory[]
+  paymentMethods  PaymentMethod[]
+  chats           Chat[]           @relation("EmployerChats")
+  interviews      Interview[]
+
+  @@map("employer_profiles")
+}
+
+// Subscription management
+model Subscription {
+  id                     String             @id @default(cuid())
+  employerId             String
+  status                 SubscriptionStatus
+  expiresAt              DateTime
+  trialEndsAt            DateTime?
+  provider               PaymentProvider
+  providerSubscriptionId String?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  // Relations
+  employer       EmployerProfile @relation(fields: [employerId], references: [userId], onDelete: Cascade)
+  billingHistory BillingHistory[]
+
+  @@map("subscriptions")
+}
+
+// Chat system with RLS
+model Chat {
+  id         String   @id @default(cuid())
+  employerId String
+  employeeId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  employer  User         @relation("EmployerChats", fields: [employerId], references: [id], onDelete: Cascade)
+  employee  User         @relation("EmployeeChats", fields: [employeeId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+
+  @@unique([employerId, employeeId])
+  @@map("chats")
+}
+
+// Chat messages with RLS
+model ChatMessage {
+  id        String   @id @default(cuid())
+  chatId    String
+  senderId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  // Relations
+  chat   Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender User @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
+
+// Interview scheduling
+model Interview {
+  id         String          @id @default(cuid())
+  employerId String
+  employeeId String
+  startsAt   DateTime
+  status     InterviewStatus @default(SCHEDULED)
+  notes      String?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  // Relations
+  employer Employer @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  employee User     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("interviews")
+}
+
+// Audit logging
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  action    String
+  entity    String
+  entityId  String
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  // Relations
+  actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}
+
+// Search filters (saved by employers)
+model SearchFilter {
+  id          String   @id @default(cuid())
+  employerId  String
+  name        String
+  filters     Json
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("search_filters")
+}
+
+// Saved searches for employers
+model SavedSearch {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  paramsJson  Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("saved_searches")
+}
+
+// Shortlist management
+model Shortlist {
+  id          String   @id @default(cuid())
+  employerId  String
+  employeeId  String
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([employerId, employeeId])
+  @@map("shortlists")
+}
+
+// Document verification
+model Document {
+  id              String         @id @default(cuid())
+  employeeId      String
+  type            DocumentType
+  fileName        String
+  fileUrl         String
+  fileSize        Int
+  mimeType        String
+  status          DocumentStatus @default(PENDING)
+  verifiedAt      DateTime?
+  verifiedBy      String?
+  rejectionReason String?
+  expiresAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // Relations
+  employee EmployeeProfile @relation(fields: [employeeId], references: [userId], onDelete: Cascade)
+
+  @@map("documents")
+}
+
+// Reference management
+model Reference {
+  id          String   @id @default(cuid())
+  employeeId  String
+  name        String
+  relationship String
+  company     String?
+  phone       String
+  email       String?
+  duration    String?  // How long they worked together
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  employee EmployeeProfile @relation(fields: [employeeId], references: [userId], onDelete: Cascade)
+
+  @@map("references")
+}
+
+// Billing history
+model BillingHistory {
+  id              String         @id @default(cuid())
+  employerId      String
+  subscriptionId  String
+  amount          Decimal        @db.Decimal(10, 2)
+  provider        PaymentProvider
+  providerPaymentId String?
+  invoiceUrl      String?
+  status          PaymentStatus
+  paidAt          DateTime?
+  createdAt       DateTime       @default(now())
+
+  // Relations
+  employer    EmployerProfile @relation(fields: [employerId], references: [userId], onDelete: Cascade)
+  subscription Subscription   @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@map("billing_history")
+}
+
+// Payment methods
+model PaymentMethod {
+  id                     String         @id @default(cuid())
+  employerId             String
+  provider               PaymentProvider
+  providerPaymentMethodId String
+  lastFourDigits         String?
+  expiryMonth            Int?
+  expiryYear             Int?
+  isDefault              Boolean        @default(false)
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+
+  // Relations
+  employer EmployerProfile @relation(fields: [employerId], references: [userId], onDelete: Cascade)
+
+  @@map("payment_methods")
+}
+
+// Content reporting
+model Report {
+  id          String   @id @default(cuid())
+  reporterId  String
+  reportedId  String
+  reason      String
+  description String?
+  status      String   @default("PENDING")
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("reports")
+}
