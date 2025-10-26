@@ -1,14 +1,10 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useMemo } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { SearchFilters } from '@/lib/search/search-utils';
 import { Button } from '@/components/ui/button';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  ChevronsLeft, 
-  ChevronsRight 
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 interface SearchPaginationProps {
   filters: SearchFilters;
@@ -17,56 +13,54 @@ interface SearchPaginationProps {
   totalPages?: number;
 }
 
-export function SearchPagination({ 
-  filters, 
-  totalHits, 
-  currentPage = 1, 
-  totalPages = 1 
+export function SearchPagination({
+  filters,
+  totalHits,
+  currentPage = 1,
+  totalPages = 1,
 }: SearchPaginationProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+
+  // Prefer filters.pageSize if available; fallback to 24
+  const pageSize = (filters as any)?.pageSize ?? 24;
 
   const goToPage = (page: number) => {
     if (page < 1 || page > totalPages) return;
-    
     const params = new URLSearchParams(searchParams.toString());
-    params.set('page', page.toString());
-    router.push(`/workers?${params.toString()}`);
+    params.set('page', String(page));
+    router.push(`${pathname}?${params.toString()}`);
   };
 
-  const getVisiblePages = () => {
+  const visiblePages = useMemo<(number | string)[]>(() => {
     const delta = 2;
-    const range = [];
-    const rangeWithDots = [];
+    const range: number[] = [];
 
-    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+    for (
+      let i = Math.max(2, currentPage - delta);
+      i <= Math.min(totalPages - 1, currentPage + delta);
+      i++
+    ) {
       range.push(i);
     }
 
-    if (currentPage - delta > 2) {
-      rangeWithDots.push(1, '...');
-    } else {
-      rangeWithDots.push(1);
-    }
+    const out: (number | string)[] = [];
+    if (currentPage - delta > 2) out.push(1, '...');
+    else out.push(1);
 
-    rangeWithDots.push(...range);
+    out.push(...range);
 
-    if (currentPage + delta < totalPages - 1) {
-      rangeWithDots.push('...', totalPages);
-    } else if (totalPages > 1) {
-      rangeWithDots.push(totalPages);
-    }
+    if (currentPage + delta < totalPages - 1) out.push('...', totalPages);
+    else if (totalPages > 1) out.push(totalPages);
 
-    return rangeWithDots;
-  };
+    return out;
+  }, [currentPage, totalPages]);
 
-  if (totalPages <= 1) {
-    return null;
-  }
+  if (totalPages <= 1) return null;
 
-  const visiblePages = getVisiblePages();
-  const startItem = (currentPage - 1) * 24 + 1;
-  const endItem = Math.min(currentPage * 24, totalHits);
+  const startItem = totalHits === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endItem = Math.min(currentPage * pageSize, totalHits);
 
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-6">
@@ -77,67 +71,43 @@ export function SearchPagination({
 
       {/* Pagination Controls */}
       <div className="flex items-center gap-2" data-testid="pagination">
-        {/* First Page */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => goToPage(1)}
-          disabled={currentPage === 1}
-          className="hidden sm:flex"
-        >
+        <Button variant="outline" size="sm" onClick={() => goToPage(1)} disabled={currentPage === 1} className="hidden sm:flex">
           <ChevronsLeft className="h-4 w-4" />
         </Button>
 
-        {/* Previous Page */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => goToPage(currentPage - 1)}
-          disabled={currentPage === 1}
-          data-testid="prev-page"
-        >
+        <Button variant="outline" size="sm" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1} data-testid="prev-page">
           <ChevronLeft className="h-4 w-4" />
         </Button>
 
-        {/* Page Numbers */}
         <div className="flex items-center gap-1">
-          {visiblePages.map((page, index) => (
-            <div key={index}>
-              {page === '...' ? (
-                <span className="px-3 py-2 text-sm text-gray-500">...</span>
-              ) : (
-                <Button
-                  variant={currentPage === page ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => goToPage(page as number)}
-                  className="w-10 h-10"
-                >
-                  {page}
-                </Button>
-              )}
-            </div>
-          ))}
+          {visiblePages.map((p, idx) => {
+            const isNum = typeof p === 'number';
+            const isActive = isNum && p === currentPage;
+            return (
+              <div key={`${p}-${idx}`}>
+                {p === '...' ? (
+                  <span className="px-3 py-2 text-sm text-gray-500">…</span>
+                ) : (
+                  <Button
+                    variant={isActive ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => isNum && goToPage(p)}
+                    className="w-10 h-10"
+                    aria-current={isActive ? 'page' : undefined}
+                  >
+                    {p}
+                  </Button>
+                )}
+              </div>
+            );
+          })}
         </div>
 
-        {/* Next Page */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => goToPage(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          data-testid="next-page"
-        >
+        <Button variant="outline" size="sm" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages} data-testid="next-page">
           <ChevronRight className="h-4 w-4" />
         </Button>
 
-        {/* Last Page */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => goToPage(totalPages)}
-          disabled={currentPage === totalPages}
-          className="hidden sm:flex"
-        >
+        <Button variant="outline" size="sm" onClick={() => goToPage(totalPages)} disabled={currentPage === totalPages} className="hidden sm:flex">
           <ChevronsRight className="h-4 w-4" />
         </Button>
       </div>
