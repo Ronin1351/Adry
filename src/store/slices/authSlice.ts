@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { User, AuthState, ApiResponse } from '../../types';
+import { User, AuthState } from '../../types';
 import { authAPI } from '../../api/auth';
 
 interface LoginCredentials {
@@ -16,15 +16,32 @@ interface RegisterData {
   companyName?: string;
 }
 
+type AuthSuccessPayload = {
+  user: User;
+  token: string;
+  refreshToken: string;
+};
+
+type RefreshTokenPayload = {
+  token: string;
+  refreshToken: string;
+};
+
 // Async thunks
 export const login = createAsyncThunk(
   'auth/login',
   async (credentials: LoginCredentials, { rejectWithValue }) => {
     try {
       const response = await authAPI.login(credentials);
-      return response.data;
+      const data = response.data.data;
+
+      if (!data) {
+        throw new Error('Invalid login response');
+      }
+
+      return data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Login failed');
+      return rejectWithValue(error.response?.data?.message || error.message || 'Login failed');
     }
   }
 );
@@ -34,9 +51,17 @@ export const register = createAsyncThunk(
   async (data: RegisterData, { rejectWithValue }) => {
     try {
       const response = await authAPI.register(data);
-      return response.data;
+      const payload = response.data.data;
+
+      if (!payload) {
+        throw new Error('Invalid registration response');
+      }
+
+      return payload;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Registration failed');
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Registration failed'
+      );
     }
   }
 );
@@ -58,9 +83,17 @@ export const refreshToken = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await authAPI.refreshToken();
-      return response.data;
+      const data = response.data.data;
+
+      if (!data) {
+        throw new Error('Invalid refresh token response');
+      }
+
+      return data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Token refresh failed');
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Token refresh failed'
+      );
     }
   }
 );
@@ -101,12 +134,33 @@ export const resetPassword = createAsyncThunk(
   }
 );
 
+export const getProfile = createAsyncThunk(
+  'auth/getProfile',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await authAPI.getProfile();
+      const data = response.data.data;
+
+      if (!data) {
+        throw new Error('Invalid profile response');
+      }
+
+      return data;
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to fetch profile'
+      );
+    }
+  }
+);
+
 const initialState: AuthState = {
   user: null,
   token: null,
   refreshToken: null,
   isAuthenticated: false,
   isLoading: false,
+  error: undefined,
 };
 
 const authSlice = createSlice({
@@ -136,7 +190,7 @@ const authSlice = createSlice({
         state.isLoading = true;
         state.error = undefined;
       })
-      .addCase(login.fulfilled, (state, action) => {
+      .addCase(login.fulfilled, (state, action: PayloadAction<AuthSuccessPayload>) => {
         state.isLoading = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
@@ -153,7 +207,7 @@ const authSlice = createSlice({
         state.isLoading = true;
         state.error = undefined;
       })
-      .addCase(register.fulfilled, (state, action) => {
+      .addCase(register.fulfilled, (state, action: PayloadAction<AuthSuccessPayload>) => {
         state.isLoading = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
@@ -172,9 +226,10 @@ const authSlice = createSlice({
         state.refreshToken = null;
         state.isAuthenticated = false;
         state.error = undefined;
+        state.isLoading = false;
       })
       // Refresh Token
-      .addCase(refreshToken.fulfilled, (state, action) => {
+      .addCase(refreshToken.fulfilled, (state, action: PayloadAction<RefreshTokenPayload>) => {
         state.token = action.payload.token;
         state.refreshToken = action.payload.refreshToken;
       })
@@ -183,6 +238,21 @@ const authSlice = createSlice({
         state.token = null;
         state.refreshToken = null;
         state.isAuthenticated = false;
+      })
+      // Get Profile
+      .addCase(getProfile.pending, (state) => {
+        state.isLoading = true;
+        state.error = undefined;
+      })
+      .addCase(getProfile.fulfilled, (state, action: PayloadAction<User>) => {
+        state.isLoading = false;
+        state.user = action.payload;
+        state.isAuthenticated = true;
+        state.error = undefined;
+      })
+      .addCase(getProfile.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
       });
   },
 });
