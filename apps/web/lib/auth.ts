@@ -1,4 +1,5 @@
 import { NextAuthOptions } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
@@ -68,6 +69,8 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: '/auth/signin',
-    signUp: '/auth/signup',
   },
 };
+
+// Helper function to get session in server components and API routes
+export const auth = () => getServerSession(authOptions);
