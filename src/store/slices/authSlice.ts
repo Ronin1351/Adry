@@ -101,6 +101,18 @@ export const resetPassword = createAsyncThunk(
   }
 );
 
+export const getProfile = createAsyncThunk(
+  'auth/getProfile',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await authAPI.getProfile();
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to get profile');
+    }
+  }
+);
+
 const initialState: AuthState = {
   user: null,
   token: null,
@@ -179,6 +191,22 @@ const authSlice = createSlice({
         state.refreshToken = action.payload.refreshToken;
       })
       .addCase(refreshToken.rejected, (state) => {
+        state.user = null;
+        state.token = null;
+        state.refreshToken = null;
+        state.isAuthenticated = false;
+      })
+      // Get Profile
+      .addCase(getProfile.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(getProfile.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.data;
+        state.isAuthenticated = true;
+      })
+      .addCase(getProfile.rejected, (state) => {
+        state.isLoading = false;
         state.user = null;
         state.token = null;
         state.refreshToken = null;

@@ -95,8 +95,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Perform search
-    const searchParams = {
-      q: validatedParams.q || '',
+    const searchOptions = {
       filter: filterParts.length > 0 ? filterParts.join(' AND ') : undefined,
       sort,
       offset,
@@ -104,7 +103,7 @@ export async function GET(request: NextRequest) {
       facets: ['city', 'province', 'skills', 'live_in_out', 'experience_band'],
     };
 
-    const response = await index.search(validatedParams.q || '', searchParams);
+    const response = await index.search(validatedParams.q || '', searchOptions);
 
     // Calculate pagination info
     const totalPages = Math.ceil(response.totalHits / pageSize);

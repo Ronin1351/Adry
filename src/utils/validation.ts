@@ -18,6 +18,11 @@ export function validateEmail(email: string): boolean {
 
 /**
  * Validates password strength
+ * Password must be at least 8 characters and contain:
+ * - At least one uppercase letter
+ * - At least one lowercase letter
+ * - At least one number
+ * - At least one special character
  * @param password - Password to validate
  * @returns true if password meets requirements, false otherwise
  */
@@ -25,13 +30,53 @@ export function validatePassword(password: string): boolean {
   if (!password || typeof password !== 'string') {
     return false;
   }
-  
-  // Minimum 6 characters
-  if (password.length < 6) {
+
+  // Minimum 8 characters
+  if (password.length < 8) {
     return false;
   }
-  
+
+  // Check for uppercase letter
+  if (!/[A-Z]/.test(password)) {
+    return false;
+  }
+
+  // Check for lowercase letter
+  if (!/[a-z]/.test(password)) {
+    return false;
+  }
+
+  // Check for number
+  if (!/[0-9]/.test(password)) {
+    return false;
+  }
+
+  // Check for special character
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    return false;
+  }
+
   return true;
+}
+
+/**
+ * Get password strength level
+ * @param password - Password to check
+ * @returns strength level (weak, medium, strong)
+ */
+export function getPasswordStrength(password: string): 'weak' | 'medium' | 'strong' {
+  if (!password) return 'weak';
+
+  let strength = 0;
+  if (password.length >= 8) strength++;
+  if (password.length >= 12) strength++;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+  if (/[0-9]/.test(password)) strength++;
+  if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) strength++;
+
+  if (strength < 3) return 'weak';
+  if (strength < 5) return 'medium';
+  return 'strong';
 }
 
 /**

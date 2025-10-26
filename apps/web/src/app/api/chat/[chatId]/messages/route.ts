@@ -17,8 +17,8 @@ export async function GET(
 
     const { chatId } = params;
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50')));
 
     // Verify chat belongs to user
     const chat = await prisma.chat.findFirst({
@@ -77,8 +77,17 @@ export async function POST(
     const { chatId } = params;
     const { body } = await request.json();
 
-    if (!body || body.trim().length === 0) {
+    // Validate message body
+    if (!body || typeof body !== 'string' || body.trim().length === 0) {
       return NextResponse.json({ error: 'Message body is required' }, { status: 400 });
+    }
+
+    // Maximum message length: 5000 characters
+    if (body.trim().length > 5000) {
+      return NextResponse.json({
+        error: 'Message too long',
+        message: 'Message must be 5000 characters or less'
+      }, { status: 400 });
     }
 
     // Verify chat belongs to user

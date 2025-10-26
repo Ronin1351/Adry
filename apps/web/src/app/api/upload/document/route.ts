@@ -4,9 +4,12 @@ import { generateDocumentUploadUrl, validateFile } from '@/lib/storage/signed-ur
 import { documentTypeSchema } from '@/lib/validations/employee-profile';
 import { z } from 'zod';
 
+// Maximum file size: 10MB for documents
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
 const uploadSchema = z.object({
   fileName: z.string().min(1, 'File name is required'),
-  fileSize: z.number().int().min(1, 'File size must be greater than 0'),
+  fileSize: z.number().int().min(1, 'File size must be greater than 0').max(MAX_FILE_SIZE, 'File size must not exceed 10MB'),
   contentType: z.string().min(1, 'Content type is required'),
   documentType: documentTypeSchema,
 });

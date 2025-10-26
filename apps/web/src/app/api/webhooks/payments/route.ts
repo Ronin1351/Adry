@@ -120,31 +120,35 @@ async function handlePaymentSucceeded(provider: string, event: any) {
       return;
     }
 
-    // Update subscription status
-    await prisma.subscription.update({
-      where: { id: subscriptionId },
-      data: {
-        status: 'ACTIVE',
-        updatedAt: new Date(),
-      },
-    });
+    // Use transaction to ensure data consistency
+    await prisma.$transaction(async (tx) => {
+      // Update subscription status
+      await tx.subscription.update({
+        where: { id: subscriptionId },
+        data: {
+          status: 'ACTIVE',
+          updatedAt: new Date(),
+        },
+      });
 
-    // Create billing history record
-    await prisma.billingHistory.create({
-      data: {
-        employerId,
-        subscriptionId,
-        amount,
-        provider: provider as any,
-        providerPaymentId: paymentId,
-        status: 'PAID',
-        paidAt: new Date(),
-      },
+      // Create billing history record
+      await tx.billingHistory.create({
+        data: {
+          employerId,
+          subscriptionId,
+          amount,
+          provider: provider as any,
+          providerPaymentId: paymentId,
+          status: 'PAID',
+          paidAt: new Date(),
+        },
+      });
     });
 
     console.log(`Payment succeeded for employer ${employerId}, subscription ${subscriptionId}`);
   } catch (error) {
     console.error('Error handling payment succeeded:', error);
+    throw error;
   }
 }
 
@@ -160,30 +164,34 @@ async function handlePaymentFailed(provider: string, event: any) {
       return;
     }
 
-    // Update subscription status
-    await prisma.subscription.update({
-      where: { id: subscriptionId },
-      data: {
-        status: 'PAST_DUE',
-        updatedAt: new Date(),
-      },
-    });
+    // Use transaction to ensure data consistency
+    await prisma.$transaction(async (tx) => {
+      // Update subscription status
+      await tx.subscription.update({
+        where: { id: subscriptionId },
+        data: {
+          status: 'PAST_DUE',
+          updatedAt: new Date(),
+        },
+      });
 
-    // Create billing history record
-    await prisma.billingHistory.create({
-      data: {
-        employerId,
-        subscriptionId,
-        amount: 0,
-        provider: provider as any,
-        providerPaymentId: paymentId,
-        status: 'FAILED',
-      },
+      // Create billing history record
+      await tx.billingHistory.create({
+        data: {
+          employerId,
+          subscriptionId,
+          amount: 0,
+          provider: provider as any,
+          providerPaymentId: paymentId,
+          status: 'FAILED',
+        },
+      });
     });
 
     console.log(`Payment failed for employer ${employerId}, subscription ${subscriptionId}`);
   } catch (error) {
     console.error('Error handling payment failed:', error);
+    throw error;
   }
 }
 
@@ -251,31 +259,35 @@ async function handlePaymentCompleted(provider: string, event: any) {
       return;
     }
 
-    // Update subscription status
-    await prisma.subscription.update({
-      where: { id: subscriptionId },
-      data: {
-        status: 'ACTIVE',
-        updatedAt: new Date(),
-      },
-    });
+    // Use transaction to ensure data consistency
+    await prisma.$transaction(async (tx) => {
+      // Update subscription status
+      await tx.subscription.update({
+        where: { id: subscriptionId },
+        data: {
+          status: 'ACTIVE',
+          updatedAt: new Date(),
+        },
+      });
 
-    // Create billing history record
-    await prisma.billingHistory.create({
-      data: {
-        employerId,
-        subscriptionId,
-        amount,
-        provider: provider as any,
-        providerPaymentId: paymentId,
-        status: 'PAID',
-        paidAt: new Date(),
-      },
+      // Create billing history record
+      await tx.billingHistory.create({
+        data: {
+          employerId,
+          subscriptionId,
+          amount,
+          provider: provider as any,
+          providerPaymentId: paymentId,
+          status: 'PAID',
+          paidAt: new Date(),
+        },
+      });
     });
 
     console.log(`Payment completed for employer ${employerId}, subscription ${subscriptionId}`);
   } catch (error) {
     console.error('Error handling payment completed:', error);
+    throw error;
   }
 }
 
