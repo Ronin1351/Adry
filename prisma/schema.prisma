@@ -184,6 +184,8 @@ model EmployeeProfile {
   documents   Document[]
   references  Reference[]
 
+  @@index([city, province])
+  @@index([visibility, kycStatus])
   @@map("employee_profiles")
 }
 
@@ -216,6 +218,7 @@ model EmployerProfile {
   paymentMethods  PaymentMethod[]
   chats           Chat[]           @relation("EmployerChats")
   interviews      Interview[]
+  searchFilters   SearchFilter[]   @relation("EmployerSearchFilters")
 
   @@map("employer_profiles")
 }
@@ -236,6 +239,8 @@ model Subscription {
   employer       EmployerProfile @relation(fields: [employerId], references: [userId], onDelete: Cascade)
   billingHistory BillingHistory[]
 
+  @@index([employerId, status])
+  @@index([expiresAt])
   @@map("subscriptions")
 }
 
@@ -253,6 +258,8 @@ model Chat {
   messages  ChatMessage[]
 
   @@unique([employerId, employeeId])
+  @@index([employerId])
+  @@index([employeeId])
   @@map("chats")
 }
 
@@ -268,6 +275,8 @@ model ChatMessage {
   chat   Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
   sender User @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
+  @@index([chatId])
+  @@index([senderId])
   @@map("chat_messages")
 }
 
@@ -283,8 +292,8 @@ model Interview {
   updatedAt  DateTime        @updatedAt
 
   // Relations
-  employer Employer @relation(fields: [employerId], references: [id], onDelete: Cascade)
-  employee User     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employer EmployerProfile @relation(fields: [employerId], references: [userId], onDelete: Cascade)
+  employee User            @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@map("interviews")
 }
@@ -314,6 +323,9 @@ model SearchFilter {
   isDefault   Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // Relations
+  employer EmployerProfile @relation("EmployerSearchFilters", fields: [employerId], references: [userId], onDelete: Cascade)
 
   @@map("search_filters")
 }

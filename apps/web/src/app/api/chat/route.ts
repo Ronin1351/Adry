@@ -13,13 +13,18 @@ export async function GET(request: NextRequest) {
     }
 
     const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '10')));
 
     const chats = await prisma.chat.findMany({
       where: {
-        employerId: session!.user!.id,
+        employerId: session.user.id,
       },
       include: {
         employee: {
@@ -65,6 +70,11 @@ export async function POST(request: NextRequest) {
     }
 
     const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { employeeId } = await request.json();
 
     if (!employeeId) {
@@ -74,7 +84,7 @@ export async function POST(request: NextRequest) {
     // Check if chat already exists
     const existingChat = await prisma.chat.findFirst({
       where: {
-        employerId: session!.user!.id,
+        employerId: session.user.id,
         employeeId,
       },
     });
@@ -86,7 +96,7 @@ export async function POST(request: NextRequest) {
     // Create new chat
     const chat = await prisma.chat.create({
       data: {
-        employerId: session!.user!.id,
+        employerId: session.user.id,
         employeeId,
       },
       include: {
