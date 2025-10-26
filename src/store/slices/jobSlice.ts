@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { JobPosting, JobApplication, SearchFilters, PaginatedResponse } from '../../types';
+import { JobPosting, JobApplication, SearchFilters } from '../../types';
 import { jobAPI } from '../../api/job';
 
 interface JobState {
@@ -48,9 +48,17 @@ export const getJobPosting = createAsyncThunk(
   async (id: string, { rejectWithValue }) => {
     try {
       const response = await jobAPI.getJobPosting(id);
-      return response.data;
+      const data = response.data.data;
+
+      if (!data) {
+        throw new Error('Invalid job posting response');
+      }
+
+      return data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch job posting');
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to fetch job posting'
+      );
     }
   }
 );
@@ -60,9 +68,17 @@ export const createJobPosting = createAsyncThunk(
   async (data: Partial<JobPosting>, { rejectWithValue }) => {
     try {
       const response = await jobAPI.createJobPosting(data);
-      return response.data;
+      const payload = response.data.data;
+
+      if (!payload) {
+        throw new Error('Invalid job posting response');
+      }
+
+      return payload;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to create job posting');
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to create job posting'
+      );
     }
   }
 );
@@ -72,9 +88,17 @@ export const updateJobPosting = createAsyncThunk(
   async ({ id, data }: { id: string; data: Partial<JobPosting> }, { rejectWithValue }) => {
     try {
       const response = await jobAPI.updateJobPosting(id, data);
-      return response.data;
+      const payload = response.data.data;
+
+      if (!payload) {
+        throw new Error('Invalid job posting response');
+      }
+
+      return payload;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to update job posting');
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to update job posting'
+      );
     }
   }
 );
@@ -96,9 +120,17 @@ export const applyToJob = createAsyncThunk(
   async (data: { jobPostingId: string; coverLetter?: string }, { rejectWithValue }) => {
     try {
       const response = await jobAPI.applyToJob(data);
-      return response.data;
+      const payload = response.data.data;
+
+      if (!payload) {
+        throw new Error('Invalid job application response');
+      }
+
+      return payload;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to apply to job');
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to apply to job'
+      );
     }
   }
 );
@@ -120,9 +152,17 @@ export const getJobApplications = createAsyncThunk(
   async (jobPostingId: string, { rejectWithValue }) => {
     try {
       const response = await jobAPI.getJobApplications(jobPostingId);
-      return response.data;
+      const data = response.data.data;
+
+      if (!data) {
+        throw new Error('Invalid job applications response');
+      }
+
+      return data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch job applications');
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to fetch job applications'
+      );
     }
   }
 );
@@ -132,9 +172,17 @@ export const updateApplicationStatus = createAsyncThunk(
   async ({ id, status }: { id: string; status: string }, { rejectWithValue }) => {
     try {
       const response = await jobAPI.updateApplicationStatus(id, status);
-      return response.data;
+      const data = response.data.data;
+
+      if (!data) {
+        throw new Error('Invalid job application response');
+      }
+
+      return data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to update application status');
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to update application status'
+      );
     }
   }
 );

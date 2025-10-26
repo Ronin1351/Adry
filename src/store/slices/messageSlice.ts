@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { Message, ApiResponse, PaginatedResponse } from '../../types';
+import { Message } from '../../types';
 import { messageAPI } from '../../api/message';
 
 interface MessageState {
@@ -33,9 +33,17 @@ export const getConversation = createAsyncThunk(
   async (userId: string, { rejectWithValue }) => {
     try {
       const response = await messageAPI.getConversation(userId);
-      return response.data;
+      const data = response.data.data;
+
+      if (!data) {
+        throw new Error('Invalid conversation response');
+      }
+
+      return data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch conversation');
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to fetch conversation'
+      );
     }
   }
 );
@@ -45,9 +53,17 @@ export const sendMessage = createAsyncThunk(
   async (data: { receiverId: string; content: string }, { rejectWithValue }) => {
     try {
       const response = await messageAPI.sendMessage(data);
-      return response.data;
+      const payload = response.data.data;
+
+      if (!payload) {
+        throw new Error('Invalid message response');
+      }
+
+      return payload;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to send message');
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to send message'
+      );
     }
   }
 );
@@ -57,9 +73,17 @@ export const markAsRead = createAsyncThunk(
   async (messageId: string, { rejectWithValue }) => {
     try {
       const response = await messageAPI.markAsRead(messageId);
-      return response.data;
+      const data = response.data.data;
+
+      if (!data) {
+        throw new Error('Invalid message response');
+      }
+
+      return data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to mark as read');
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to mark as read'
+      );
     }
   }
 );

@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { EmployeeProfile, EmployerProfile, ApiResponse } from '../../types';
+import { EmployeeProfile, EmployerProfile } from '../../types';
 import { profileAPI } from '../../api/profile';
 
 interface ProfileState {
@@ -15,9 +15,17 @@ export const getEmployeeProfile = createAsyncThunk(
   async (userId: string, { rejectWithValue }) => {
     try {
       const response = await profileAPI.getEmployeeProfile(userId);
-      return response.data;
+      const data = response.data.data;
+
+      if (!data) {
+        throw new Error('Invalid employee profile response');
+      }
+
+      return data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch profile');
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to fetch profile'
+      );
     }
   }
 );
@@ -27,9 +35,17 @@ export const createEmployeeProfile = createAsyncThunk(
   async (profileData: Partial<EmployeeProfile>, { rejectWithValue }) => {
     try {
       const response = await profileAPI.createEmployeeProfile(profileData);
-      return response.data;
+      const data = response.data.data;
+
+      if (!data) {
+        throw new Error('Invalid employee profile response');
+      }
+
+      return data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to create profile');
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to create profile'
+      );
     }
   }
 );
@@ -39,9 +55,17 @@ export const updateEmployeeProfile = createAsyncThunk(
   async ({ id, data }: { id: string; data: Partial<EmployeeProfile> }, { rejectWithValue }) => {
     try {
       const response = await profileAPI.updateEmployeeProfile(id, data);
-      return response.data;
+      const payload = response.data.data;
+
+      if (!payload) {
+        throw new Error('Invalid employee profile response');
+      }
+
+      return payload;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to update profile');
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to update profile'
+      );
     }
   }
 );
@@ -51,9 +75,17 @@ export const uploadProfilePhoto = createAsyncThunk(
   async ({ userId, file }: { userId: string; file: File }, { rejectWithValue }) => {
     try {
       const response = await profileAPI.uploadProfilePhoto(userId, file);
-      return response.data;
+      const data = response.data.data;
+
+      if (!data) {
+        throw new Error('Invalid upload response');
+      }
+
+      return data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to upload photo');
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to upload photo'
+      );
     }
   }
 );
@@ -64,9 +96,17 @@ export const getEmployerProfile = createAsyncThunk(
   async (userId: string, { rejectWithValue }) => {
     try {
       const response = await profileAPI.getEmployerProfile(userId);
-      return response.data;
+      const data = response.data.data;
+
+      if (!data) {
+        throw new Error('Invalid employer profile response');
+      }
+
+      return data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch profile');
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to fetch profile'
+      );
     }
   }
 );
@@ -76,9 +116,17 @@ export const createEmployerProfile = createAsyncThunk(
   async (profileData: Partial<EmployerProfile>, { rejectWithValue }) => {
     try {
       const response = await profileAPI.createEmployerProfile(profileData);
-      return response.data;
+      const data = response.data.data;
+
+      if (!data) {
+        throw new Error('Invalid employer profile response');
+      }
+
+      return data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to create profile');
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to create profile'
+      );
     }
   }
 );
@@ -88,9 +136,17 @@ export const updateEmployerProfile = createAsyncThunk(
   async ({ id, data }: { id: string; data: Partial<EmployerProfile> }, { rejectWithValue }) => {
     try {
       const response = await profileAPI.updateEmployerProfile(id, data);
-      return response.data;
+      const payload = response.data.data;
+
+      if (!payload) {
+        throw new Error('Invalid employer profile response');
+      }
+
+      return payload;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to update profile');
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to update profile'
+      );
     }
   }
 );
@@ -100,9 +156,17 @@ export const uploadCompanyLogo = createAsyncThunk(
   async ({ userId, file }: { userId: string; file: File }, { rejectWithValue }) => {
     try {
       const response = await profileAPI.uploadCompanyLogo(userId, file);
-      return response.data;
+      const data = response.data.data;
+
+      if (!data) {
+        throw new Error('Invalid upload response');
+      }
+
+      return data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to upload logo');
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to upload logo'
+      );
     }
   }
 );

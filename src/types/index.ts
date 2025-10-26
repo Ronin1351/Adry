@@ -132,6 +132,7 @@ export interface AuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  error?: string;
 }
 
 export interface ApiResponse<T> {
